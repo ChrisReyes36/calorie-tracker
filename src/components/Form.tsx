@@ -1,5 +1,4 @@
 import {
-  useMemo,
   useState,
   type ChangeEvent,
   type Dispatch,
@@ -18,22 +17,24 @@ type FormProps = {
   state: ActivityState;
 };
 
-const initialState: Activity = {
-  id: uuidV4(),
-  category: 1,
-  name: "",
-  calories: 0,
-};
+const createInitialState = (selectedActivity?: Activity): Activity =>
+  selectedActivity
+    ? { ...selectedActivity }
+    : {
+        id: uuidV4(),
+        category: 1,
+        name: "",
+        calories: 0,
+      };
 
 const Form = ({ dispatch, state }: FormProps) => {
-  const [activity, setActivity] = useState<Activity>(initialState);
-
-  const selectedActivity = useMemo(
-    () => state.activities.find((a) => a.id === state.activeId),
-    [state.activeId, state.activities],
+  const selectedActivity = state.activities.find(
+    (activity) => activity.id === state.activeId,
   );
 
-  const currentActivity = selectedActivity ?? activity;
+  const [activity, setActivity] = useState<Activity>(
+    createInitialState(selectedActivity),
+  );
 
   const handleChange = (
     e: ChangeEvent<HTMLSelectElement> | ChangeEvent<HTMLInputElement>,
@@ -41,23 +42,25 @@ const Form = ({ dispatch, state }: FormProps) => {
     const isNumberField = ["category", "calories"].includes(e.target.id);
 
     setActivity({
-      ...currentActivity,
+      ...activity,
       [e.target.name]: isNumberField ? +e.target.value : e.target.value,
     });
   };
 
   const isValidActivity = () => {
-    const { name, calories } = currentActivity;
+    const { name, calories } = activity;
     return name.trim() !== "" && calories > 0;
   };
 
   const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     dispatch({
       type: "save-activity",
-      payload: { newActivity: currentActivity },
+      payload: { newActivity: activity },
     });
-    setActivity({ ...initialState, id: uuidV4() });
+
+    setActivity(createInitialState());
   };
 
   return (
@@ -73,7 +76,7 @@ const Form = ({ dispatch, state }: FormProps) => {
           name="category"
           id="category"
           className="border border-slate-300 p-2 rounded-lg w-full bg-white"
-          value={currentActivity.category}
+          value={activity.category}
           onChange={handleChange}
         >
           {categories.map((category) => (
@@ -94,7 +97,7 @@ const Form = ({ dispatch, state }: FormProps) => {
           id="name"
           className="border border-slate-300 p-2 rounded-lg w-full"
           placeholder="Ej. Comida, Jugo de Naranja, Ensalada, Ejercicio, Pesas, Bicicleta"
-          value={currentActivity.name}
+          value={activity.name}
           onChange={handleChange}
         />
       </div>
@@ -109,18 +112,14 @@ const Form = ({ dispatch, state }: FormProps) => {
           id="calories"
           className="border border-slate-300 p-2 rounded-lg w-full"
           placeholder="Ej. 300, 500"
-          value={currentActivity.calories}
+          value={activity.calories}
           onChange={handleChange}
         />
       </div>
 
       <input
         type="submit"
-        value={
-          currentActivity.category === 1
-            ? "Guardar Comida"
-            : "Guardar Ejercicio"
-        }
+        value={activity.category === 1 ? "Guardar Comida" : "Guardar Ejercicio"}
         className="bg-gray-800 hover:bg-gray-900 w-full p-2 font-bold uppercase text-white cursor-pointer disabled:opacity-10"
         disabled={!isValidActivity()}
       />
